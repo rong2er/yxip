@@ -50,21 +50,26 @@ for url in urls:
             driver = setup_selenium()
             driver.get(url)
             # 等待动态加载(调整时间或加按钮点击)
-            time.sleep(10)  # 等待JS加载IP, 或替换为: WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "ip-table"))) 等
-            # 假设有"开始测速"按钮, 替换为实际选择器(浏览器检查元素)
-            # try:
-            #     start_button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "start-test")))  # 或By.CLASS_NAME("btn-start")
-            #     start_button.click()
-            #     time.sleep(5)  # 等待结果
-            # except:
-            #     print("无按钮, 直接等待加载")
+            time.sleep(10)  # 等待JS加载IP
             html_content = driver.page_source
             driver.quit()
-        else:  # 其他URL用requests
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-            response = requests.get(url, headers=headers, timeout=7)
+        else:  # 其他URL用requests(添加no-cache headers)
+            # 随机化URL避免缓存(可选,针对频繁更新站点)
+            if 'wetest.vip' in url:
+                url_with_cache_bust = f"{url}?t={int(time.time())}"
+            else:
+                url_with_cache_bust = url
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'If-None-Match': ''  # 清ETag缓存
+            }
+            response = requests.get(url_with_cache_bust, headers=headers, timeout=7)
             if response.status_code == 200:
                 html_content = response.text
+                # 调试: 打印响应头,检查缓存状态
+                print(f'{url} 响应头 Cache-Control: {response.headers.get("Cache-Control", "无")}')
             else:
                 print(f'请求 {url} 失败: status {response.status_code}')
                 continue
@@ -93,6 +98,13 @@ for url in urls:
                 except ValueError:
                     continue
             print(f'从 {url} 提取: {len(ipv4_matches)} IPv4候选, {len(ipv6_matches)} IPv6候选 (有效: {len(valid_ipv4)} IPv4, {len(valid_ipv6)} IPv6)')
+            # 针对wetest.vip, 提取更新时间戳调试
+            if 'wetest.vip' in url:
+                timestamp_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
+                timestamps = re.findall(timestamp_pattern, html_content)
+                if timestamps:
+                    latest_ts = max(timestamps)
+                    print(f'{url} 最新更新时间: {latest_ts} (当前时间: {time.strftime("%Y-%m-%d %H:%M:%S")})')
         else:
             print(f'{url} 内容为空或过短, 跳过')
     except Exception as e:  # 捕获Selenium/requests错误
