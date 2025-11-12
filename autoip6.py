@@ -46,7 +46,7 @@ def setup_selenium():
 for url in urls:
     try:
         if url == 'https://ip.164746.xyz':  # 针对动态站点用Selenium
-            print(f'使用Selenium处理动态站点: {url}')
+            print(f'Using Selenium for dynamic site: {url}')
             driver = setup_selenium()
             driver.get(url)
             # 等待动态加载(调整时间或加按钮点击)
@@ -69,9 +69,9 @@ for url in urls:
             if response.status_code == 200:
                 html_content = response.text
                 # 调试: 打印响应头,检查缓存状态
-                print(f'{url} 响应头 Cache-Control: {response.headers.get("Cache-Control", "无")}')
+                print(f'{url} Cache-Control header: {response.headers.get("Cache-Control", "none")}')
             else:
-                print(f'请求 {url} 失败: status {response.status_code}')
+                print(f'Request failed for {url}: status {response.status_code}')
                 continue
 
         # 确保内容获取(对Selenium也检查)
@@ -97,22 +97,22 @@ for url in urls:
                     valid_ipv6.append(ip)
                 except ValueError:
                     continue
-            print(f'从 {url} 提取: {len(ipv4_matches)} IPv4候选, {len(ipv6_matches)} IPv6候选 (有效: {len(valid_ipv4)} IPv4, {len(valid_ipv6)} IPv6)')
+            print(f'From {url} extracted: {len(ipv4_matches)} IPv4 candidates, {len(ipv6_matches)} IPv6 candidates (valid: {len(valid_ipv4)} IPv4, {len(valid_ipv6)} IPv6)')
             # 针对wetest.vip, 提取更新时间戳调试
             if 'wetest.vip' in url:
                 timestamp_pattern = r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
                 timestamps = re.findall(timestamp_pattern, html_content)
                 if timestamps:
                     latest_ts = max(timestamps)
-                    print(f'{url} 最新更新时间: {latest_ts} (当前时间: {time.strftime("%Y-%m-%d %H:%M:%S")})')
+                    print(f'{url} latest update time: {latest_ts} (current time: {time.strftime("%Y-%m-%d %H:%M:%S")})')
         else:
-            print(f'{url} 内容为空或过短, 跳过')
+            print(f'{url} content empty or too short, skipping')
     except Exception as e:  # 捕获Selenium/requests错误
-        print(f'处理 {url} 失败: {e}')
+        print(f'Failed to process {url}: {e}')
         continue
 
 # 调试: 打印最终unique大小
-print(f'总唯一IPv4: {len(unique_ipv4)}, IPv6: {len(unique_ipv6)}')
+print(f'Total unique IPv4: {len(unique_ipv4)}, IPv6: {len(unique_ipv6)}')
 
 # 查询每个IP的country_code
 def get_country_code(ip):
@@ -125,21 +125,21 @@ def get_country_code(ip):
         else:
             return 'ZZ'
     except Exception as e:
-        print(f"查询IP {ip} country_code失败: {e}")
+        print(f"Failed to query country_code for IP {ip}: {e}")
         return 'ZZ'
 
 # IPv4处理(即使空也写空文件)
 sorted_ipv4 = sorted(unique_ipv4, key=lambda ip: [int(part) for part in ip.split('.')])
 results_v4 = []
-for ip 在 sorted_ipv4:
+for ip in sorted_ipv4:
     country_code = get_country_code(ip)
     results_v4.append(f"{ip}:8443#{country_code}")
     time.sleep(1)
 with open('ip.txt', 'w', encoding='utf-8') as file:
     for line in results_v4:
         file.write(line + '\n')
-print(f'已保存 {len(results_v4)} 个唯一IPv4地址及country_code到ip.txt文件.')
-print(f'ip.txt 大小: {os.path.getsize("ip.txt") if os.path.exists("ip.txt") else 0} bytes')  # 调试大小
+print(f'Saved {len(results_v4)} unique IPv4 addresses with country_code to ip.txt.')
+print(f'ip.txt size: {os.path.getsize("ip.txt") if os.path.exists("ip.txt") else 0} bytes')  # 调试大小
 
 # IPv6处理(即使空也写空文件)
 sorted_ipv6 = sorted(unique_ipv6)
@@ -151,9 +151,9 @@ for ip in sorted_ipv6:
 with open('ipv6.txt', 'w', encoding='utf-8') as file:
     for line in results_v6:
         file.write(line + '\n')
-print(f'已保存 {len(results_v6)} 个唯一IPv6地址及country_code到ipv6.txt文件.')
-print(f'ipv6.txt 大小: {os.path.getsize("ipv6.txt") if os.path.exists("ipv6.txt") else 0} bytes')  # 调试大小
+print(f'Saved {len(results_v6)} unique IPv6 addresses with country_code to ipv6.txt.')
+print(f'ipv6.txt size: {os.path.getsize("ipv6.txt") if os.path.exists("ipv6.txt") else 0} bytes')  # 调试大小
 
 # 最终调试: 列出当前目录文件
-print(f'当前目录: {os.getcwd()}')
-print(f'目录文件: {os.listdir(".")}')
+print(f'Current directory: {os.getcwd()}')
+print(f'Directory files: {os.listdir(".")}')
