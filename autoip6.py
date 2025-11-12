@@ -12,14 +12,15 @@ urls = [
     'https://addressesapi.090227.xyz/CloudFlareYes',
     'https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt',
     'https://www.wetest.vip/page/cloudflare/address_v6.html',
-    'https://www.wetest.vip/page/cloudflare/address_v4.html'，
+    'https://www.wetest.vip/page/cloudflare/address_v4.html',
     'https://cf.090227.xyz',
     'https://stock.hostmonit.com/CloudFlareYes',
     'https://addressesapi.090227.xyz/ip.164746.xyz'
 ]
+
 # 正则表达式用于初步匹配IPV4与IPV6地址(配合ipaddress库二次过滤)
 ipv4_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
-# 新版IPv6 pattern: 支持压缩格式(如::)，大/小写
+# 新版IPv6 pattern: 支持压缩格式(如::), 大/小写
 ipv6_pattern = r'(?:(?:[0-9A-Fa-f]{1,4}:){6}(?:[0-9A-Fa-f]{1,4}|(?<=:)[0-9A-Fa-f]{0,4})|(?:[0-9A-Fa-f]{1,4}:){5}(?::[0-9A-Fa-f]{1,4}){1,2}|(?:[0-9A-Fa-f]{1,4}:){4}(?::[0-9A-Fa-f]{1,4}){1,3}|(?:[0-9A-Fa-f]{1,4}:){3}(?::[0-9A-Fa-f]{1,4}){1,4}|(?:[0-9A-Fa-f]{1,4}:){2}(?::[0-9A-Fa-f]{1,4}){1,5}|(?:[0-9A-Fa-f]{1,4}:){1}(?::[0-9A-Fa-f]{1,4}){1,6}|(?::(?::[0-9A-Fa-f]{1,4}){1,7}|:)|(?:[0-9A-Fa-f]{1,4}:)(?::[0-9A-Fa-f]{1,4}){0,6})'
 
 # 检查ip.txt和ipv6.txt文件是否存在,如果存在则删除它
@@ -89,9 +90,9 @@ if unique_ipv4:
     with open('ip.txt', 'w', encoding='utf-8') as file:
         for line in results_v4:
             file.write(line + '\n')
-    print(f'已保存 {len(results_v4)} 个唯一IPv4地址及country_code到ip.txt文件。')
+    print(f'已保存 {len(results_v4)} 个唯一IPv4地址及country_code到ip.txt文件.')
 else:
-    print('未找到有效的IPv4地址。')
+    print('未找到有效的IPv4地址.')
 
 if unique_ipv6:
     sorted_ipv6 = sorted(unique_ipv6)
@@ -103,6 +104,6 @@ if unique_ipv6:
     with open('ipv6.txt', 'w', encoding='utf-8') as file:
         for line in results_v6:
             file.write(line + '\n')
-    print(f'已保存 {len(results_v6)} 个唯一IPv6地址及country_code到ipv6.txt文件。')
+    print(f'已保存 {len(results_v6)} 个唯一IPv6地址及country_code到ipv6.txt文件.')
 else:
-    print('未找到有效的IPv6地址。')
+    print('未找到有效的IPv6地址.')
