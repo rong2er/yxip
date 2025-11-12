@@ -21,7 +21,8 @@ urls = [
     'https://www.wetest.vip/page/cloudflare/address_v6.html',
     'https://www.wetest.vip/page/cloudflare/address_v4.html',
     'https://cf.090227.xyz',
-    'https://stock.hostmonit.com/CloudFlareYes',  
+    'https://stock.hostmonit.com/CloudFlareYes'，
+    'https://raw.githubusercontent.com/rong2er/CFIP/refs/heads/main/ip.txt'
 ]
 
 # 正则表达式用于初步匹配IPV4与IPV6地址(配合ipaddress库二次过滤)
@@ -41,7 +42,7 @@ unique_ipv6 = set()
 
 def setup_selenium():
     # 设置无头Chrome浏览器
-    chrome_options = Options()
+    chrome_options = 选项()
     chrome_options.add_argument("--headless")  # 无头模式,适合Actions
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
