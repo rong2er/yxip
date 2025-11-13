@@ -10,26 +10,36 @@ HOST = 'speed.cloudflare.com'
 PORT = 443
 FILE_SIZE = 10485760  # 字节，用于验证
 
-# 国旗 PNG CDN 模板 (Flagcdn.com)
-FLAG_CDN = "https://flagcdn.com/w20/{code}.png"  # w20 = 20px；改 w40 为更大
+# 英文国家名到中文翻译字典 (覆盖常见国家，可扩展)
+EN_TO_CN = {
+    'United States': '美国',
+    'Canada': '加拿大',
+    'China': '中国',
+    'United Kingdom': '英国',
+    'Germany': '德国',
+    'France': '法国',
+    'Japan': '日本',
+    'Australia': '澳大利亚',
+    'India': '印度',
+    'Brazil': '巴西',
+    'Unknown': '未知'
+    # 加更多: 'Russia': '俄罗斯', 等
+}
 
-def get_country_flag(ip):
-    """查询 IP 国家代码，并生成 PNG URL"""
+def get_chinese_country(ip):
+    """查询 IP 国家，并返回中文名"""
     try:
-        response = requests.get(f'http://ip-api.com/json/{ip}?fields=status,countryCode,country', timeout=5)
+        response = requests.get(f'http://ip-api.com/json/{ip}?fields=status,country', timeout=5)
         data = response.json()
         if data['status'] == 'success':
-            code = data.get('countryCode', '').strip().lower()
-            country = data.get('country', 'Unknown')
-            if code:
-                png_url = FLAG_CDN.format(code=code)
-                print(f"  代码: {code}, 国家: {country}, PNG: {png_url}")
-                return png_url, country  # 返回 URL 和国家名
-            return None, 'Unknown'
-        return None, 'Unknown'
+            en_country = data.get('country', 'Unknown')
+            cn_country = EN_TO_CN.get(en_country, '未知')  # 翻译或 fallback
+            print(f"  国家: {en_country} -> {cn_country}")
+            return cn_country
+        return '未知'
     except Exception as e:
         print(f"  国家查询失败 {ip}: {e}")
-        return None, 'Unknown'
+        return '未知'
 
 def test_speed(ip, retries=1):
     """用 curl --resolve 测试 CF 带宽 (MB/s)，重试失败"""
@@ -103,33 +113,26 @@ def main():
                 continue
             ip = match.group(1)
 
-            png_url, country = get_country_flag(ip)
-            print(f"\n测试 {ip} - 国家: {country}")
+            cn_country = get_chinese_country(ip)
+            print(f"\n测试 {ip} - {cn_country}")
 
             speed = test_speed(ip)
             time.sleep(1)
 
             if speed > 0:
-                if png_url:
-                    result = f"- {ip} #{country} ![国旗]({png_url}) + {speed}MB/s"  # Markdown 图像
-                else:
-                    result = f"- {ip} #{country} + {speed}MB/s"  # fallback
+                result = f"{ip}#{cn_country} {speed}MB/s"  # 格式: IP#国家 速率
                 results.append(result)
                 print(f"  -> 成功: {result}")
             else:
                 failed_count += 1
                 print(f"  -> 失败: 连接不通")
 
-        # 写入 speed_ip.md (Markdown)
-        with open('speed_ip.md', 'w', encoding='utf-8') as f:
-            f.write('# IP 带宽测速结果 (IP#国家 + 国旗图像 + 速率，所有成功 IP)\n\n')
-            f.write(f'生成时间: {time.strftime("%Y-%m-%d %H:%M:%S UTC")}\n')
-            f.write(f'总测试: {len(lines)}, 成功: {len(results)}, 失败: {failed_count}\n\n')
-            f.write('## 结果列表 (按速率降序):\n\n')
+        # 写入 speed_ip.txt (纯列表，无头部)
+        with open('speed_ip.txt', 'w', encoding='utf-8') as f:
             for res in sorted(results, key=lambda x: float(re.search(r'(\d+\.?\d*)MB/s', x).group(1)), reverse=True):
                 f.write(res + '\n')
 
-        print(f"\n完成！共 {len(results)} 个成功 IP 保存到 speed_ip.md (失败 {failed_count} 个)")
+        print(f"\n完成！共 {len(results)} 个成功 IP 保存到 speed_ip.txt (失败 {failed_count} 个)")
     except Exception as e:
         print(f"脚本异常: {e}")
         import traceback
