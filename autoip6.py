@@ -22,7 +22,6 @@ urls = [
     'https://www.wetest.vip/page/cloudflare/address_v4.html',
     'https://cf.090227.xyz',
     'https://stock.hostmonit.com/CloudFlareYes',
-    'https://raw.githubusercontent.com/rong2er/CFIP/refs/heads/main/ip.txt',
     'https://raw.githubusercontent.com/rong2er/Senflare-IP/refs/heads/main/Ranking.txt'
 ]
 
