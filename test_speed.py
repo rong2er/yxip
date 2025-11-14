@@ -10,8 +10,8 @@ HOST = 'speed.cloudflare.com'
 PORT = 443
 FILE_SIZE = 10485760  # 字节，用于验证
 
-# 强制端口
-FORCE_PORT = 8443
+# 默认端口
+DEFAULT_PORT = 8443
 
 # 英文国家名到中文翻译字典 (覆盖常见国家，可扩展)
 EN_TO_CN = {
@@ -110,13 +110,14 @@ def main():
         results = []
         failed_count = 0
         for line in lines:
-            # 提取 IP (忽略端口，只取 IP 部分)
-            match = re.match(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?\s*#(.*)$', line)
+            # 提取 IP 和可选端口 (格式: IP:PORT#US 或 IP#US)
+            match = re.match(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d+))?\s*#(.*)$', line)
             if not match:
                 print(f"跳过无效行: {line}")
                 continue
             ip = match.group(1)
-            ip_port = f"{ip}:{FORCE_PORT}"  # 强制 :8443
+            port = match.group(2) or str(DEFAULT_PORT)  # 优先自带端口，没有默认8443
+            ip_port = f"{ip}:{port}"
 
             cn_country = get_chinese_country(ip)
             print(f"\n测试 {ip_port} - {cn_country}")
@@ -125,7 +126,7 @@ def main():
             time.sleep(1)
 
             if speed > 0:
-                result = f"{ip_port}#{cn_country} {speed}MB/s"  # 格式: IP:8443#国家 速率
+                result = f"{ip_port}#{cn_country} {speed}MB/s"  # 格式: IP:端口#国家 速率
                 results.append(result)
                 print(f"  -> 成功: {result}")
             else:
