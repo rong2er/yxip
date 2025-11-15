@@ -13,48 +13,103 @@ FILE_SIZE = 10485760  # 字节，用于验证
 # 默认端口
 DEFAULT_PORT = 8443
 
-def get_chinese_city(ip):
-    """查询 IP 城市，并返回中文城市名（主: ip-api.com；"未知"/失败时备用1: ipinfo.io → 备用2: ipgeolocation.io）"""
-    # 主 API: ip-api.com (HTTP 如前两天，lang=zh-CN 获取中文)
-    try:
-        response = requests.get(f'http://ip-api.com/json/{ip}?fields=status,city&lang=zh-CN', timeout=5)
-        data = response.json()
-        if data['status'] == 'success':
-            cn_city = data.get('city', '未知')
-            if cn_city != '未知':
-                print(f" 城市: {cn_city}")
-                return cn_city
+# 英文城市 → 中文映射（针对 fallback 英文名）
+EN_CITY_TO_CN = {
+    'San Francisco': '旧金山',
+    'New York': '纽约',
+    'Los Angeles': '洛杉矶',
+    'Chicago': '芝加哥',
+    'Houston': '休斯顿',
+    'Phoenix': '凤凰城',
+    'Philadelphia': '费城',
+    'San Antonio': '圣安东尼奥',
+    'San Diego': '圣迭戈',
+    'Dallas': '达拉斯',
+    'Seattle': '西雅图',
+    'Denver': '丹佛',
+    'Washington': '华盛顿',
+    'Boston': '波士顿',
+    'Detroit': '底特律',
+    'Nashville': '纳什维尔',
+    'Portland': '波特兰',
+    'Las Vegas': '拉斯维加斯',
+    'Memphis': '孟菲斯',
+    'Oklahoma City': '俄克拉荷马城',
+    'Baltimore': '巴尔的摩',
+    'Milwaukee': '密尔沃基',
+    'Albuquerque': '阿尔伯克基',
+    'Tucson': '图森',
+    'Fresno': '弗雷斯诺',
+    'Sacramento': '萨克拉门托',
+    'Long Beach': '长滩',
+    'Kansas City': '堪萨斯城',
+    'Mesa': '梅萨',
+    'Atlanta': '亚特兰大',
+    'Colorado Springs': '科罗拉多斯普林斯',
+    'Virginia Beach': '弗吉尼亚比奇',
+    'Raleigh': '罗利',
+    'Omaha': '奥马哈',
+    'Miami': '迈阿密',
+    'Oakland': '奥克兰',
+    'Minneapolis': '明尼阿波利斯',
+    'Tulsa': '塔尔萨',
+    'Cleveland': '克利夫兰',
+    'Wichita': '威奇托',
+    'Arlington': '阿灵顿',
+    # 加更多如果需要
+    'Unknown': '未知'
+}
+
+def translate_city(en_city):
+    """英文城市转中文"""
+    return EN_CITY_TO_CN.get(en_city, en_city)  # 未匹配返回原英文
+
+def get_chinese_city(ip, max_retries=2):
+    """查询 IP 城市，并返回中文城市名（主: ip-api.com 重试；如果返回'San Francisco'则fallback；备用翻译英文）"""
+    for retry in range(max_retries):
+        # 主 API: ip-api.com (HTTPS, lang=zh-CN 获取中文)
+        try:
+            time.sleep(1)  # 防限速
+            response = requests.get(f'https://ip-api.com/json/{ip}?fields=status,city&lang=zh-CN', timeout=10)
+            data = response.json()
+            if data['status'] == 'success':
+                cn_city = data.get('city', '未知')
+                if cn_city != '未知' and cn_city != 'San Francisco':  # 新规则：如果主API返回'San Francisco'，视为无效，fallback
+                    print(f" 城市: {cn_city} (主 API, 尝试 {retry+1})")
+                    return cn_city
+                else:
+                    print(f"  ip-api.com 返回 {cn_city} (尝试 {retry+1})，按规则 fallback...")
             else:
-                print("  ip-api.com 返回未知，尝试备用1: ipinfo.io...")
-        else:
-            print(f"  ip-api.com status fail: {data.get('message', 'Unknown')}，尝试备用1: ipinfo.io...")
-    except Exception as e:
-        print(f"  ip-api.com 查询失败 {ip}: {e}，尝试备用1: ipinfo.io...")
+                print(f"  ip-api.com status fail (尝试 {retry+1}): {data.get('message', 'Unknown')}")
+        except Exception as e:
+            print(f"  ip-api.com 查询失败 {ip} (尝试 {retry+1}): {e}")
+        
+        if retry < max_retries - 1:
+            time.sleep(2)  # 重试延时
     
-    # 备用1: ipinfo.io (lang=zh 获取中文)
+    # 如果主 API 全失败或返回'San Francisco'，备用1: ipinfo.io (英文后翻译)
     try:
-        backup1_resp = requests.get(f'https://ipinfo.io/{ip}/json?lang=zh', timeout=5)
+        backup1_resp = requests.get(f'https://ipinfo.io/{ip}/json?lang=zh', timeout=10)
         if backup1_resp.status_code == 200:
             backup1_data = backup1_resp.json()
-            cn_city1 = backup1_data.get('city', '未知')
-            if cn_city1 != '未知':
-                print(f"  备用1 成功: {cn_city1}")
-                return cn_city1
-            else:
-                print("  ipinfo.io 返回未知，尝试备用2: ipgeolocation.io...")
+            en_city1 = backup1_data.get('city', '未知')
+            cn_city1 = translate_city(en_city1)
+            print(f"  备用1 成功: {en_city1} -> {cn_city1}")
+            return cn_city1
         else:
-            print(f"  备用1 失败: {backup1_resp.status_code}，尝试备用2...")
+            print(f"  备用1 失败: {backup1_resp.status_code}")
     except Exception as e:
-        print(f"  备用1 异常: {e}，尝试备用2...")
+        print(f"  备用1 异常: {e}")
     
-    # 备用2: ipgeolocation.io (demo key, lang=zh 获取中文)
+    # 备用2: ipgeolocation.io (英文后翻译)
     try:
-        backup2_resp = requests.get(f'https://api.ipgeolocation.io/ipgeo?apiKey=demo&ip={ip}&fields=city&lang=zh', timeout=5)
+        backup2_resp = requests.get(f'https://api.ipgeolocation.io/ipgeo?apiKey=demo&ip={ip}&fields=city', timeout=10)
         if backup2_resp.status_code == 200:
             backup2_data = backup2_resp.json()
-            cn_city2 = backup2_data.get('city', '未知')
-            if cn_city2 != '未知':
-                print(f"  备用2 成功: {cn_city2}")
+            en_city2 = backup2_data.get('city', '未知')
+            cn_city2 = translate_city(en_city2)
+            if en_city2 != '未知':
+                print(f"  备用2 成功: {en_city2} -> {cn_city2}")
                 return cn_city2
             print("  备用2 返回未知")
         else:
